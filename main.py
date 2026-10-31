@@ -87,10 +87,10 @@ async def on_message(message):
 
     if message.content.startswith("!shut"):
         await message.channel.send("Desligando pc...")
-        sp.Popen(shutdown_command)
+        sp.Popen(shutdown_command,shell=True)
     elif message.content.startswith("!rebo"):
         await message.channel.send("Reiniciando pc...")
-        sp.Popen(reboot_command)
+        sp.Popen(reboot_command,shell=True)
     elif message.content.startswith("!resu"):
         await message.channel.send("Iniciando o resumo dos posts do r/linuxbrasil...")
         try:
