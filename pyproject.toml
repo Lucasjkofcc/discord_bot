@@ -12,6 +12,7 @@ dependencies = [
     "feedparser>=6.0.14",
     "mss>=10.2.0",
     "ollama>=0.6.3",
+    "pyinstaller>=6.22.3",
     "python-dotenv>=1.2.4",
 ]
 

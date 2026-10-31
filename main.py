@@ -2,19 +2,26 @@ import asyncio
 import io
 import os
 import subprocess as sp
+import sys
 
 import discord
 import mss
 from dotenv import load_dotenv
 from linux_brasil import resumir_r_linux_brasil
 load_dotenv()
-
+shutdown_command = None
+reboot_command = None
 intents = discord.Intents.default()
 intents.message_content = True
 
 bot = discord.Client(intents=intents)
 
-
+if sys.platform.startswith("win"):
+    shutdown_command = "shutdown /s /f /t 0"
+    reboot_command = "shutdown /r /f /t 0"
+elif sys.platform.startswith("linux"):
+    shutdown_command = "shutdown now"
+    reboot_command = "reboot"
 async def capture_screenshot() -> bytes:
     def capturar() -> bytes:
         with mss.MSS() as tela:
@@ -48,6 +55,24 @@ async def format_uptime() -> str:
         return "Não foi possível obter o uptime do sistema."
 
 
+async def atualizar_sistema(channel):
+    await channel.send("Iniciando atualização via paru...")
+    try:
+        resultado = await asyncio.to_thread(
+            lambda: sp.run(["paru", "-Syu", "--noconfirm"], capture_output=True, text=True)
+        )
+
+        if resultado.returncode == 0:
+            await channel.send("Atualização concluída.")
+        else:
+            erro = (resultado.stderr or resultado.stdout or "Erro desconhecido").strip()
+            await channel.send(f"Atualização finalizada com erro: {erro[:1500]}")
+    except FileNotFoundError:
+        await channel.send("Comando `paru` não foi encontrado no sistema.")
+    except Exception as e:
+        await channel.send(f"Erro ao atualizar o sistema: {e}")
+
+
 @bot.event
 async def on_ready():
     print(f"Conectado como {bot.user}")
@@ -62,10 +87,10 @@ async def on_message(message):
 
     if message.content.startswith("!shut"):
         await message.channel.send("Desligando pc...")
-        sp.Popen(["shutdown", "now"])
+        sp.Popen(shutdown_command)
     elif message.content.startswith("!rebo"):
         await message.channel.send("Reiniciando pc...")
-        sp.Popen(["reboot"])
+        sp.Popen(reboot_command)
     elif message.content.startswith("!resu"):
         await message.channel.send("Iniciando o resumo dos posts do r/linuxbrasil...")
         try:
@@ -83,14 +108,21 @@ async def on_message(message):
         await message.channel.send(await format_uptime())
     elif message.content.startswith("!pc_se"):
         sp.Popen(["/home/lucas/Projetos/anti_curioso/dist/pc_seguro"])
+        await message.channel.send("pc_seguro iniciado.")
     elif message.content.startswith("!pc_na"):
         sp.Popen(["pkill", "pc_seguro"])
-    elif message.content.startswith("!abrir"):
-        message_content = message.content.split(" ", 1)
-        if len(message_content) < 2:
+        await message.channel.send("pc_seguro encerrado.")
+    elif message.content.startswith("!atua") or message.content.startswith("!upda"):
+        await atualizar_sistema(message.channel)
+
+    elif message.content.startswith("!abrir") or message.content.startswith("!rodar") or message.content.startswith("!exec"):
+        message_content = message.content.split(" ", 1)[1:]
+        message_content = " ".join(message_content)
+        if len(message_content) < 1:
             await message.channel.send("Por favor, forneça o caminho do arquivo ou programa a ser aberto.")
             return
-        sp.Popen([message_content[1]])
+        await message.channel.send(f"rodando: {message_content}")
+        sp.Popen(message_content,shell=True)
     elif message.content.startswith("!print") or message.content.startswith("!tela"):
         try:
             screenshot = await capture_screenshot()
