@@ -81,13 +81,17 @@ async def on_message(message):
         await message.channel.send(fastfetch.stdout.read().decode("utf-8"))
     elif message.content.startswith("!up"):
         await message.channel.send(await format_uptime())
+    elif message.content.startswith("!pc_se"):
+        sp.Popen(["/home/lucas/Projetos/anti_curioso/dist/pc_seguro"])
+    elif message.content.startswith("!pc_na"):
+        sp.Popen(["pkill", "pc_seguro"])
     elif message.content.startswith("!abrir"):
         message_content = message.content.split(" ", 1)
         if len(message_content) < 2:
             await message.channel.send("Por favor, forneça o caminho do arquivo ou programa a ser aberto.")
             return
         sp.Popen([message_content[1]])
-    elif message.content.startswith("!print"):
+    elif message.content.startswith("!print") or message.content.startswith("!tela"):
         try:
             screenshot = await capture_screenshot()
             arquivo = discord.File(io.BytesIO(screenshot), filename="screenshot.png")
